@@ -20,6 +20,7 @@ export type DefaultServiceOptions = {
   requestTimeout: number;
   url: string;
   rejectUnauthorized: boolean;
+  additionalBody?: FormData | Record<string, unknown>;
 };
 
 export type DefaultRequestOptions = {
@@ -51,16 +52,28 @@ export function defaultOptionsHandler(
   serviceOptions: DefaultServiceOptions,
   { body, query, sudo, method = 'get' }: DefaultRequestOptions = {},
 ): DefaultRequestReturn {
-  const { headers, requestTimeout, url } = serviceOptions;
+  const { headers, requestTimeout, url, additionalBody = {} } = serviceOptions;
   let bod: FormData | string;
 
   if (sudo) headers.sudo = sudo;
 
   // FIXME: Not the best comparison, but...it will have to do for now.
   if (typeof body === 'object' && body.constructor.name !== 'FormData') {
-    bod = JSON.stringify(decamelizeKeys(body));
+    bod = JSON.stringify(decamelizeKeys({ ...body, ...additionalBody }));
     headers['content-type'] = 'application/json';
   } else {
+    /**
+     * TODO - what do I do here with the additionalBody?
+     *
+     * Update: attempting to parse `body` like so:
+     *
+     * ```ts
+     * bod = { ...body, ...additionalBody } as FormData;
+     * ```
+     *
+     * did not work and broke everything. Modify cautiously.
+     *
+     */
     bod = body as FormData;
   }
 
